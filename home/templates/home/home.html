@@ -5,6 +5,13 @@
 {% endblock title %}
 
 {% block content %}
-    <h1>This is home. This is us.</h1>
-    <p>Home is <a href="{% url 'home:index' %}">here</a>.</p>
+  <header>
+    <pre>{{ request.get_host }}{% url 'api:campus' %}</pre>
+    <h1>Endpoints</h1>
+  </header>
+  {% comment %}<section>
+    <h2>Endpoints for technology news</h1>
+    <pre>/</pre>
+  </section>{% endcomment %}
+    
 {% endblock content %}

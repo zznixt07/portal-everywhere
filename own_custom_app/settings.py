@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'tech_news.apps.TechNewsConfig',
+    'campus.apps.CampusConfig',
     'user.apps.UserConfig',
     'home.apps.HomeConfig',
     'django_extensions',

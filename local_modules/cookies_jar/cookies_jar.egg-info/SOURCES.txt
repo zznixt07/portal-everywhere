@@ -1,0 +1,8 @@
+setup.py
+cookies_jar/__init__.py
+cookies_jar/cookies_jar.py
+cookies_jar.egg-info/PKG-INFO
+cookies_jar.egg-info/SOURCES.txt
+cookies_jar.egg-info/dependency_links.txt
+cookies_jar.egg-info/not-zip-safe
+cookies_jar.egg-info/top_level.txt
