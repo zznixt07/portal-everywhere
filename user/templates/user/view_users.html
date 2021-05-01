@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    List of Users - My Site
+{% endblock %}
+
+{% block content %}
+    <p>Recently signed up Users:</p>
+    <ol>
+        {% for user in users %}
+            <li>{{ user.username }}</li>
+        {% endfor %}
+    </ol>
+{% endblock %}

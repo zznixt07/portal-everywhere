@@ -1,0 +1,5 @@
+{% for message in messages %}
+    <p class="{{ message.level_tag }}-msg">
+        {{ message.message }}
+    </p>
+{% endfor %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    Login - My Site
+{% endblock title %}
+
+{% block external_css %}
+    <link rel="stylesheet" type="text/css" href="{% static 'user/css/errors.css' %}">
+{% endblock external_css %}
+
+{% block content %}
+    <form action="" method="POST">
+        {% csrf_token %}
+        {% include 'messages.html' %}
+        {{ form.as_p }}
+        <input type="submit" value="Login">
+    </form>
+{% endblock content %}
