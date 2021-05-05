@@ -25,7 +25,7 @@ SECRET_KEY = 'fkd)m7#qzfvq@*+(4dzs8l67c=#%jy6ra9k_jf*68fk+niq-qf'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['portal-everywhere.herokuapp.com']
 
 
 # Application definition
