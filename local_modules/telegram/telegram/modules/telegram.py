@@ -14,7 +14,7 @@ class Telegram:
             myChannel.sendPicture('https://google.com/favico.png', caption='nice')
             myChannel.sendText('hello. beep boop!!')
     '''
-    
+    apiEndpoint = 'https://api.telegram.org/bot'
     UA = ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
             + '(KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36')
 
@@ -26,124 +26,126 @@ class Telegram:
         return
 
     def __init__(self, channelId, botApiKey, sendWithoutSound=False, parseMode='MarkdownV2'):
-        self.channelId = channelId
-        self.apiUrl = 'https://api.telegram.org/bot' + botApiKey
+        self.apiUrl = self.apiEndpoint + botApiKey
         self.s = requests.Session()
         self.s.headers.update({'User-Agent': Telegram.UA})
+
+        # map class argument to telegram's POST form keys
+        self.telegramArg = {
+            'parseMode': 'parse_mode',
+            'sendWithoutSound': 'disable_notification'
+        }
         self.options = {
-            'chat_id': self.channelId,
+            'chat_id': channelId,
             'parse_mode': parseMode,
             'disable_notification': sendWithoutSound
         }
 
-    def _post(self, url, chatInfo, fileObj):
-        r = self.s.post(url, params=chatInfo, data=fileObj, timeout=245,
-                        headers={'Content-Type': fileObj.content_type})
-        # logger.debug('%s', r.text)
-        if r.json()['ok']:
-            logger.debug('sent successfully')
-            return True
-        return False
+        # tuple values is taken from telegram bots API docs.
+        self.endpointMethods = {
+            'sendLocalPicture': ('/sendPhoto', 'photo'),
+            'sendLocalVideo': ('/sendVideo', 'video'),
+            'sendLocalDocument': ('/sendDocument', 'document'),
+        }
 
-    def _send(self, url, chatInfo):
-        '''sends the actual request'''
-        r = self.s.get(url, params=chatInfo, timeout=200)
+    def setOptions(self, opts: dict):
+        for key in opts:
+            self.options[self.telegramArg[key]] = opts[key]
+
+    def __getattr__(self, method):
+
+        def arg_collector(filepath, caption=None, filename=None, removeAfter=False, **opts):
+            endpoint, fieldName = self.endpointMethods.get(method)
+            if not endpoint:
+                raise AttributeError
+            self.setOptions(opts)
+            resp = self._streamUpload(endpoint, fieldName, filepath, caption, filename, **opts)
+            if not resp:
+                return False
+                # eventho if remove=True, dont remove if unsuccessful.
+            if removeAfter:
+                os.remove(filepath)
+            return True
+
+        return arg_collector
+
+    def _post(self, endpoint, chatInfo, fileObj):
+        'perform POST for image, video, and general files.'
+
+        chatInfo = {**self.options, **chatInfo}
+        r = self.s.post(self.apiUrl + endpoint, params=chatInfo, data=fileObj,
+                        timeout=245, headers={'Content-Type': fileObj.content_type})
+        # logger.debug('%s', r.text)
+        if not r.json()['ok']:
+            logger.debug('%s', chatInfo)
+            logger.debug('%s', r.json())
+            return False
+        logger.debug('sent successfully')
+        return True
+
+    def _send(self, endpoint, chatInfo):
+        'perform GET for text'
+
+        chatInfo = {**self.options, **chatInfo}
+        r = self.s.get(self.apiUrl + endpoint, params=chatInfo, timeout=200)
         resp = self.botResponse(r.json())
         if resp['response'] == 'retry':
-            return self._send(url, chatInfo)
+            return self._send(endpoint, chatInfo)
         if resp['status'] != 200:
-            print(f'failed to send cuz {resp["response"]} {chatInfo}')
-            # logger.debug(f'failed to send cuz {resp["response"]} {chatInfo}')
-            httpUrl = self.containedHttpUrl(chatInfo)
-            # if this was called from sendText() dont send anything
-            if not httpUrl: return False
-            # we will fallback to text. since caption key is present in medias
-            # this is valid solution cuz caption has all necessary things (except url)
-            logger.debug('trying to send as text instead')
-            self.sendText(chatInfo['caption'] + '\n\n' + self.escape(httpUrl))
-        else:
-            logger.debug('sent successfully')
-            return True
+            logger.debug('%s', chatInfo)
+            logger.debug('%s', r.json())
+            return False
+        
+        logger.debug('sent successfully')
+        return True
 
-    def sendText(self, textToSend):
+    def sendText(self, textToSend, **opts):
+        responses = []
+        self.setOptions(opts)
         # text > 4096 cannot be sent as one. so split it.
         lenLim = 4096
         for i in range(0, len(textToSend), lenLim):
-            chatInfo = {**{'text': textToSend[i:i+lenLim]}, **self.options}
-            url = self.apiUrl + '/sendMessage'
-            return self._send(url, chatInfo)
+            chatInfo = {'text': textToSend[i:i+lenLim]}
+            url = '/sendMessage'
+            responses.append(self._send(url, chatInfo))
 
-    def sendPicture(self, url, caption=None):
-        chatInfo = {**{'photo': url, 'caption': caption}, **self.options}
-        url = self.apiUrl + '/sendPhoto'
+        return all(responses)
+
+    def sendPicture(self, url, caption=None, **opts):
+        self.setOptions(opts)
+        chatInfo = {'photo': url, 'caption': caption}
+        url = '/sendPhoto'
         return self._send(url, chatInfo)
 
-    def sendVideo(self, url, caption=None):
-        chatInfo = {**{'video': url, 'caption': caption}, **self.options}
-        url = self.apiUrl + '/sendVideo'
+    def sendVideo(self, url, caption=None, **opts):
+        self.setOptions(opts)
+        chatInfo = {'video': url, 'caption': caption}    
+        url = '/sendVideo'
         return self._send(url, chatInfo)
 
-    def sendLocalPicture(self, imgPath, caption=None, removeAfter=False):
-        # From docs:
-        # "Requests supports streaming uploads, which allow you to send large
-        # streams or files without reading them into memory"
-        with open(imgPath, 'rb') as file:
-            files = {'photo': file}
-            chatInfo = {**{'caption': caption}, **self.options}
-            r = self.s.post(self.apiUrl + '/sendPhoto',
-                            data=chatInfo,
-                            files=files,
-                            timeout=245)
-        if r.json()['ok']:
-            logger.debug('sent successfully')
-        if removeAfter:
-            os.remove(imgPath)
-        return None
-
-    def sendLocalVideo(self, vidPath, caption=None, filename=None, removeAfter=False):
-        # https://stackoverflow.com/a/20830717/12091475
+    def _streamUpload(self, endpoint, fieldName, filePath, caption, filename=None, **opts):
         # if both data and files param are given, requests cant stream-upload it.
-        self._streamUpload('/sendVideo', vidPath, caption, filename, 'video')
-        if removeAfter: os.remove(vidPath)
-        return None
-
-    def sendLocalDocument(self, docPath, caption=None, filename=None, removeAfter=False):
-        self._streamUpload('/sendDocument', docPath, caption, filename, 'document')
-        if removeAfter: os.remove(docPath)
-        return None
-
-    def _streamUpload(self, endpoint, filePath, caption, filename=None, type=None):
-        if filename is None:
-            filename = caption
+        # https://stackoverflow.com/a/20830717/12091475
         with open(filePath, 'rb') as fileObj:
             files = MultipartEncoder({
-                    type: (filename, fileObj, 'multipart/form-data') # see _post
-                })
-            chatInfo = {**{'caption': caption}, **self.options}
-            self._post(self.apiUrl + endpoint, chatInfo, files)
-        return None
+                fieldName: (filename or caption or '', fileObj, 'multipart/form-data') # see _post
+            })
+            self.setOptions(opts)
+            chatInfo = {'caption': caption}
+            return self._post(endpoint, chatInfo, files)
 
     @staticmethod
     def botResponse(resp):
         if resp['ok']:
             logger.debug('done')
             return {'response': True, 'status': 200}
-        else:
-            if resp['error_code'] == 429:
-                tMinus = resp['parameters']['retry_after']
-                logger.debug('sleeping for %s', tMinus)
-                time.sleep(tMinus)
-                return {'response': 'retry', 'status': 0}
-        
+        if resp['error_code'] == 429:
+            tMinus = resp['parameters']['retry_after']
+            logger.debug('sleeping for %s', tMinus)
+            time.sleep(tMinus)
+            return {'response': 'retry', 'status': 0}
+    
         return {'response': resp['description'], 'status': resp['error_code']}
-
-    @staticmethod
-    def containedHttpUrl(dictionary):
-        '''figure out whether dict has http url by looking at specific keys'''
-        for k in ['video', 'photo']:
-            if k in dictionary.keys():
-                return dictionary[k]
-        return False
 
     @staticmethod
     def escape(text, toEscape: str = None):
@@ -173,32 +175,25 @@ class Telegram:
     @staticmethod
     def code(string: str, escape: bool = False):
         return Telegram._replacer(string, '`', escape)
+
+    @staticmethod
+    def captionedUrl(url='', caption='', escape: bool = False):
+        if escape:
+            # AFAIK no need to escape url
+            return f'[{Telegram.escape(caption)}]({url})'
+        return f'[{caption}]({url})'
     
     @staticmethod
     def _replacer(text: str, surrounds: str, escape: bool):
         if not text:        # if text is empty, dont include formatting char
-            return text     # else Telegram cannot parse it properly
+            return text     # cuz Telegram wont parse.
         if escape:
             return surrounds + Telegram.escape(text) + surrounds
-        else:
-            return surrounds + text + surrounds
+        
+        return surrounds + text + surrounds
 
 
     """============ Markdown v1 ================
-    @staticmethod
-    def bold(string, escape: bool = True):
-        if escape: return '*' + Telegram._replacer(string, '*') + '*'
-        else: return '*' + string + '*'
-
-    @staticmethod
-    def italic(string, escape: bool = True):
-        if escape: return '_' + Telegram._replacer(string, '_') + '_'
-        else: return '_' + string + '_'
-
-    @staticmethod
-    def code(string, escape: bool = True):
-        if escape: return '`' + Telegram._replacer(string, '`') + '`'
-        else: return '`' + string + '`'
 
     @staticmethod
     def escape(string):
@@ -220,7 +215,25 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
 
     api_key = os.environ['BOTAPIKEY']
-    with Telegram('-1001162454492', api_key) as ch:
+    with Telegram('-1001162454492', api_key, sendWithoutSound=False) as ch:
         # ch.sendVideo('https://i.redd.it/7tiam6ru5pz51.gif',caption='')
-        ch.sendPicture('https://i.redd.it/7tiam6ru5pz51.gif' ,caption='')
-    print('Done')
+        # ch.sendPicture('https://i.redd.it/7tiam6ru5pz51.gif' ,caption='')
+        # ch.sendLocalVideo(
+            # r"C:\Users\zznixt\Downloads\Telegram Desktop\IMG_4898.MP4",
+            # caption='geggedity',
+            # filename='family_guy_funny_moments #18',
+        # )
+        # ch.sendText('[hello](https://cdn.hipwallpaper.com/i/5/73/1uVwnA.jpg)')
+        ch.sendText(
+            Telegram.bold('Shrinkflation: Costco Paper Towels, Now with 20 Fewer Sheets per Roll\n', escape=True)
+            + Telegram.captionedUrl(
+                caption=Telegram.escape("▲ 145 | 18:00 May 03 '21 | 7 comments\n" + '·' * 118 + "\n\n"),
+                url=Telegram.escape('https://news.ycombinator.com/item?id=27019345'),
+            )
+            + Telegram.captionedUrl(
+                caption=Telegram.bold('forums.redflagdeals.com', escape=True),
+                url=Telegram.escape('https://forums.redflagdeals.com/costco-paper-towels-now-20-fewer-sheets-per-roll-2461125/'),
+            )
+        )
+
+    print('====Done====')

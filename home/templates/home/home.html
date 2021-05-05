@@ -4,14 +4,52 @@
     Home
 {% endblock title %}
 
-{% block content %}
-  <header>
-    <pre>{{ request.get_host }}{% url 'api:campus' %}</pre>
-    <h1>Endpoints</h1>
-  </header>
-  {% comment %}<section>
-    <h2>Endpoints for technology news</h1>
-    <pre>/</pre>
-  </section>{% endcomment %}
+{% block inline_css %}
+  <style>
+    .tab-1 {
+      margin-left: 1rem;
+    }
+    .tab-2 {
+      margin-left: 2rem;
+    }
+    .tab-3 {
+      margin-left: 3rem;
+    }
     
+    
+  </style>
+{% endblock inline_css %}
+
+
+{% block content %}
+<div class="tab-1">
+  
+  <header class="tab-2">
+    <h1>Endpoints</h1>
+    <section class="">
+      <h1>Base Endpoint</h1>
+      {% url 'api_v1:index' as base_path %}
+      <pre>{{ request.get_host }}{{ base_path }}</pre>
+    </section>
+  </header>
+
+  <section class="tab-2">
+    <h2>Endpoints for technology news</h1>
+    {% comment %}use variable to capture url so that its evaluated first{% endcomment %}
+    {% url 'api_v1:tech_news:feeds:index' as feed_url %}
+    <pre>/{{ feed_url|cut:base_path }}</pre>
+    <div class="tab-3">
+      <h3>Xda Developers</h3>
+      {% url 'api_v1:tech_news:feeds:xda' as xda_url %}
+      <pre>/{{ xda_url|cut:feed_url }}</pre>
+
+      <h3>Torrent freak</h3>
+      {% url 'api_v1:tech_news:feeds:torrentfreak' as tf_url %}
+      <pre>/{{ tf_url|cut:feed_url }}</pre>
+
+    </div>
+    
+  </section>
+    
+</div>
 {% endblock content %}
