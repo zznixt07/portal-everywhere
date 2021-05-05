@@ -45,6 +45,15 @@
       <h3>Xda Developers</h3>
       {% url 'api_v1:tech_news:feeds:xda' as xda_url %}
       <pre>/{{ xda_url|cut:feed_url }}</pre>
+      <p>Example reponse</p>
+      <pre>[
+        "https://www.xda-developers.com/oneplus-9-pro-vs-galaxy-s21-ultra/",
+        "https://www.xda-developers.com/xiaomi-premium-android-tablets-nabu-elish-enuma/",
+        "https://www.xda-developers.com/third-party-launchers-animation-pixel-phones/",
+        "https://www.xda-developers.com/how-to-change-boot-animation-charging-screen-miui-xiaomi/",
+        "https://www.xda-developers.com/youtube-show-video-titles-native-language/"
+      ]
+      </pre>
 
       <h3>Torrent freak</h3>
       {% url 'api_v1:tech_news:feeds:torrentfreak' as tf_url %}
