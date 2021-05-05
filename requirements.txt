@@ -6,3 +6,4 @@ git+https://git@github.com/zznixt07/neutron_.git
 django-extensions
 requests
 beautifulsoup4
+gunicorn
