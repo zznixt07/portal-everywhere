@@ -1,5 +1,5 @@
 from functools import wraps
-from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseForbidden
 
 def has_correct_auth_header(function):
     
@@ -9,6 +9,6 @@ def has_correct_auth_header(function):
         if request.META.get('HTTP_AUTHORIZATION') == 'Basic ' + rand_key:
             return function(request, *args, **kwargs)
         else:
-            return PermissionDenied
+            return HttpResponseForbidden()
 
     return check_header
