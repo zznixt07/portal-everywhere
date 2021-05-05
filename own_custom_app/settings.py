@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'fkd)m7#qzfvq@*+(4dzs8l67c=#%jy6ra9k_jf*68fk+niq-qf'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['portal-everywhere.herokuapp.com']
 
