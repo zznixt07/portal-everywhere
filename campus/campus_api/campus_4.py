@@ -355,7 +355,8 @@ if __name__ == '__main__':
         
         # this returns a 80kb json file. Can be replaced with list of module-slugs.
         modules = campus4.get_all_computing_courses()
-        # import sys; sys.exit(0);
+        print(modules)
+        import sys; sys.exit(0);
         
         '''
         completed = campus4.get_all_completed_lesson_ids()
