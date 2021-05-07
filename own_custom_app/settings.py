@@ -22,13 +22,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'fkd)m7#qzfvq@*+(4dzs8l67c=#%jy6ra9k_jf*68fk+niq-qf'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG_VALUE') == 'True'
 
 ALLOWED_HOSTS = ['portal-everywhere.herokuapp.com', '127.0.0.1']
-# APPEND_SLASH = False
-
-# Application definition
 
 INSTALLED_APPS = [
     'proxy.apps.ProxyConfig',
@@ -36,7 +32,7 @@ INSTALLED_APPS = [
     'campus.apps.CampusConfig',
     'user.apps.UserConfig',
     'home.apps.HomeConfig',
-    'django_extensions',
+    # 'django_extensions',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,8 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # above all other middleware apart from Django’s SecurityMiddleware:
+    # 'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

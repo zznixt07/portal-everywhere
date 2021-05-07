@@ -5,6 +5,8 @@ from django.shortcuts import render
 # from django.views.decorator.http import require_http_methods
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.gzip import gzip_page
+# from django.middleware.gzip import GZipMiddleware
 
 from requests import Session, Request
 from requests.exceptions import RequestException 
@@ -19,6 +21,7 @@ logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 SESS = Session()
 
 @csrf_exempt
+@gzip_page
 def proxier(request, url):
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
@@ -57,13 +60,17 @@ def proxier(request, url):
         this_response.write(chunk)
 
     this_response.status_code = resp.status_code
-
+    
+    # dont use content-encoding and content-length because the response is already
+    # decoded by requests. django automatically sets the Content-Length.
+    ignore_headers = ['content-encoding', 'content-length']
     hop_by_hop_headers = [
         'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
         'te', 'trailers', 'transfer-encoding', 'upgrade',
     ]
     for header, value in resp.headers.items():
-        if header.lower() in hop_by_hop_headers: continue
+        if header.lower() in hop_by_hop_headers + ignore_headers:
+            continue
         this_response[header] = value
     
     return this_response
