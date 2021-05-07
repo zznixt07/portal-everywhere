@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Proxy
+{% endblock title %}
+
+{% block inline_css %}
+  <style>
+    .tab-1 {
+      margin-left: 1rem;
+    }
+    .tab-2 {
+      margin-left: 2rem;
+    }
+    .tab-3 {
+      margin-left: 3rem;
+    }
+  </style>
+{% endblock inline_css %}
+
+
+{% block content %}
+<div class="tab-1">
+  
+  {% url 'proxy:index' as base_path %}
+  {% with full_url=request.get_host|add:base_path  %}
+    
+    <header class="">
+      <h1>Endpoints</h1>
+      <section class="">
+        <h1>Base Endpoint</h1>
+        <pre>{{ full_url }}</pre>
+        <p>To authenticate, include api key in below format.</p>
+        <p>Include the api key in Authorization Header like below: (test key provided)</p>
+        <pre>{'Authorization': 'Basic ' + '96a768f388be5aaa8416c361570d053611357724f1b9'}</pre>
+      </section>
+    </header>
+
+    <section class="">
+      <h2>Using this proxy</h1>
+      {% comment %}use variable to capture url so that its evaluated first{% endcomment %}
+      {% with  ex1='httpbin.org' %}
+        <div><span>To GET <code>{{ ex1 }}</code> just append it to base endpoint:</span></div>
+        <pre class="tab-3">{{ full_url }}{{ ex1 }}</pre>
+        <p>or</p>
+        <pre class="tab-3">{{ full_url }}https://{{ ex1 }}</pre>
+        <p>Using requests:</p>
+          <div class="tab-3">
+            <pre>requests.get('{{ request.scheme }}://{{ full_url }}{{ ex1 }}', params={'key': 'value'})</pre>
+          </div>
+      {% endwith %}
+      <br>
+      <p>To send POST, DELETE, etc... Just send those respective methods</p>
+      {% with ex2='https://example.org/upload/?type=jpg' %}
+        <div><span>For instance, to send POST to <code>{{ ex2 }}</code></span></div>
+        <p>Using requests:</p>
+        <div class="tab-3">
+          <pre>requests.post('{{ request.scheme }}://{{ full_url }}{{ ex2 }}', data={'key': 'value'})</pre>
+        </div>
+      {% endwith %}
+    </section>
+    <section>
+      <h4>Note: Always use new session for different websites.</h4>
+      <p>For requests library, this means to share <code>requests.Session()</code> only for same site.</p>
+    </section>
+    
+  {% endwith %}
+</div>
+{% endblock content %}

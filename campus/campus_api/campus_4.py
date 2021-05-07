@@ -23,7 +23,7 @@ VERIFY_CERT = True
 class Campus4_0:
 
     host = 'https://campus.softwarica.edu.np'
-    api_url = 'https://api-campus.softwarica.edu.np'
+    api_url = 'http://127.0.0.1:8000/proxy/' + 'https://api-campus.softwarica.edu.np'
     media_url = api_url + '/uploads/files'
 
     def __enter__(self):
@@ -354,8 +354,8 @@ if __name__ == '__main__':
         # campus4.tests()
         
         # this returns a 80kb json file. Can be replaced with list of module-slugs.
-        modules = campus4.get_all_computing_courses()
-        print(modules)
+        # modules = campus4.get_all_computing_courses()
+        print(campus4.sess.cookies)
         import sys; sys.exit(0);
         
         '''

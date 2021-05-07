@@ -1,6 +1,7 @@
 import logging
 import json
 from urllib.parse import urlparse
+from django.shortcuts import render
 # from django.views.decorator.http import require_http_methods
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -64,3 +65,6 @@ def proxier(request, url):
         this_response[header] = value
     
     return this_response
+
+def index(request):
+    return render(request, 'proxy/index.html')
