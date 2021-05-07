@@ -51,7 +51,9 @@ def proxier(request, url):
         prepped.body = request.body
     try:
         # maybe stream, verify can be passed in header explicitly by the client.
-        resp = SESS.send(prepped, stream=True, verify=True, timeout=5, allow_redirects=False)
+        # dont follow redirects.
+        # maybe prepend host to location header ?
+        resp = SESS.send(prepped, stream=True, verify=True, timeout=30, allow_redirects=False)
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
 
@@ -60,7 +62,7 @@ def proxier(request, url):
         this_response.write(chunk)
 
     this_response.status_code = resp.status_code
-    
+
     # dont use content-encoding and content-length because the response is already
     # decoded by requests. django automatically sets the Content-Length.
     ignore_headers = ['content-encoding', 'content-length']
