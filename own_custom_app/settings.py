@@ -26,7 +26,7 @@ SECRET_KEY = 'fkd)m7#qzfvq@*+(4dzs8l67c=#%jy6ra9k_jf*68fk+niq-qf'
 DEBUG = os.environ.get('DEBUG_VALUE') == 'True'
 
 ALLOWED_HOSTS = ['portal-everywhere.herokuapp.com', '127.0.0.1']
-APPEND_SLASH = False
+# APPEND_SLASH = False
 
 # Application definition
 
