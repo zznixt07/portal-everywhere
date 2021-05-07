@@ -23,7 +23,7 @@ VERIFY_CERT = True
 class Campus4_0:
 
     host = 'https://campus.softwarica.edu.np'
-    api_url = 'http://127.0.0.1:8000/proxy/' + 'https://api-campus.softwarica.edu.np'
+    api_url = '' + 'https://api-campus.softwarica.edu.np'
     media_url = api_url + '/uploads/files'
 
     def __enter__(self):

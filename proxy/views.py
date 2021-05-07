@@ -36,7 +36,9 @@ def proxier(request, url):
     http_method = request.method
     # django seems to put Content-Length & Content-Type header for GET requests.
     if http_method == 'GET':
-        del headers['Content-Length']
+        # but in prod its prob being served by gunicorn. so catch excepetion.
+        try: del headers['Content-Length']
+        except KeyError: pass
     
     req = Request(http_method, url, headers=headers)
     # no session here. each request is new and fresh.
