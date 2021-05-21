@@ -38,6 +38,7 @@ LOGGING = {
         'proxy.views': {
             'handlers': ['console'],
             'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
