@@ -9,7 +9,7 @@ from django.views.decorators.gzip import gzip_page
 # from django.middleware.gzip import GZipMiddleware
 
 from requests import Session, Request
-from requests.exceptions import RequestException 
+from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
 FORMAT = '[%(module)s] :: %(levelname)s :: %(message)s'
@@ -49,11 +49,13 @@ def proxier(request, url):
     # if has a body put it in body
     if http_method != 'GET':
         prepped.body = request.body
+    verify_ssl = headers.get('X-REQUESTS-verify', True)
+    stream = headers.get('X-REQUESTS-stream', True)
     try:
         # maybe stream, verify can be passed in header explicitly by the client.
         # dont follow redirects.
         # maybe prepend host to location header ?
-        resp = SESS.send(prepped, stream=True, verify=True, timeout=30, allow_redirects=False)
+        resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=30, allow_redirects=False)
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
 

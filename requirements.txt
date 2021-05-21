@@ -1,7 +1,6 @@
 -e local_modules/telegram
 -e local_modules/cookies_jar
 -e local_modules/just_time
--e local_modules/database
 git+https://git@github.com/zznixt07/neutron_.git
 django-extensions
 requests
