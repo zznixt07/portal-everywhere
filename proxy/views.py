@@ -34,6 +34,8 @@ def proxier(request, url):
         url += '?' + params
     
     headers = {**request.headers}
+    logging.debug('URL: %s', url)
+    logging.debug('RAW HEADERS: %s', headers)
     # rewrite host header by parsing the target hostname
     headers['Host'] = urlparse(url).netloc
     http_method = request.method
@@ -51,6 +53,7 @@ def proxier(request, url):
         prepped.body = request.body
     verify_ssl = bool(headers.get('X-REQUESTS-verify', True))
     stream = bool(headers.get('X-REQUESTS-stream', True))
+    logging.debug('MODIFIED HEADERS: %s', headers)
     try:
         # TODO: prepend host to location header ?
         # dont follow redirects.
@@ -76,6 +79,7 @@ def proxier(request, url):
             continue
         this_response[header] = value
     
+    logger.debug('HEADERS TO SEND %s', this_response.items())
     return this_response
 
 def index(request):
