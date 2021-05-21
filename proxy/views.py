@@ -44,7 +44,7 @@ def proxier(request, url):
     
     headers = {**request.headers}
     logger.debug('URL: %s', url)
-    logger.debug('RAW HEADERS:%s', pformat(headers))
+    logger.debug('RAW HEADERS:\n%s', pformat(headers))
 
     # rewrite host header by parsing the target hostname
     headers['Host'] = urlparse(url).netloc
@@ -57,7 +57,6 @@ def proxier(request, url):
     # headers seem to be PascalCased
     verify_ssl = headers.pop('X-Requests-Verify', 'true') == 'true'
     stream = headers.pop('X-Requests-Stream', 'true') == 'true'
-    logger.debug('HEADERS REQUESTED FROM SERVER:%s', pformat(headers))
     
     req = Request(http_method, url, headers=headers)
     # no session here. each request is new and fresh.
@@ -69,6 +68,7 @@ def proxier(request, url):
         # TODO: prepend host to location header ?
         # dont follow redirects.
         resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=30, allow_redirects=False)
+        logger.debug('HEADERS REQUESTED FROM SERVER:\n%s', pformat(resp.request.headers))
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
 
