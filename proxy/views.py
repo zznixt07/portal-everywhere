@@ -60,8 +60,8 @@ def proxier(request, url):
     # if has a body put it in body
     if http_method != 'GET':
         prepped.body = request.body
-    verify_ssl = bool(headers.get('X-REQUESTS-verify', True))
-    stream = bool(headers.get('X-REQUESTS-stream', True))
+    verify_ssl = headers.pop('X-REQUESTS-verify', 'true') == 'true'
+    stream = headers.pop('X-REQUESTS-stream', 'true') == 'true'
     logger.debug('MODIFIED HEADERS: %s', headers)
     try:
         # TODO: prepend host to location header ?
