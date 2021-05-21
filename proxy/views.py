@@ -19,8 +19,8 @@ def ktm_time(*args):
     ).timetuple()
 
 logging.Formatter.converter = ktm_time
-FORMAT = '[%(module)s] :: %(asctime)15s :: %(levelname)s :: %(message)s'
-logging.basicConfig(level=logging.DEBUG)
+FORMAT = '%(asctime)15s :: [%(module)s] :: %(levelname)s :: %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
 # whether the state is preserverd or not depends on the call to `Request` or `Session`
@@ -30,6 +30,7 @@ SESS = Session()
 @csrf_exempt
 @gzip_page
 def proxier(request, url):
+    print('_' * 10 + 'REQUEST RECEIVED' + '_' * 10)
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
 
