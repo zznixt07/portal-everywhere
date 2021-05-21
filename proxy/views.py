@@ -19,6 +19,7 @@ def ktm_time(*args):
     ).timetuple()
 
 logging.Formatter.converter = ktm_time
+FORMAT = '[%(module)s] :: %(asctime)15s :: %(levelname)s :: %(message)s'
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
