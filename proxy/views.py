@@ -44,9 +44,10 @@ def proxier(request, url):
     
     headers = {**request.headers}
     logger.debug('URL: %s', url)
-    logger.debug('RAW HEADERS\n:%s', pformat(headers))
+    logger.debug('RAW HEADERS:%s', pformat(headers))
+
     # rewrite host header by parsing the target hostname
-    headers['Host'] = urlparse(url).netloc
+    # headers['Host'] = urlparse(url).netloc
     http_method = request.method
     # django seems to put Content-Length & Content-Type header for GET requests.
     if http_method == 'GET':
@@ -56,7 +57,7 @@ def proxier(request, url):
     # headers seem to be PascalCased
     verify_ssl = headers.pop('X-Requests-Verify', 'true') == 'true'
     stream = headers.pop('X-Requests-Stream', 'true') == 'true'
-    logger.debug('MODIFIED HEADERS:\n%s', pformat(headers))
+    logger.debug('HEADERS REQUESTED FROM SERVER:%s', pformat(headers))
     
     req = Request(http_method, url, headers=headers)
     # no session here. each request is new and fresh.
@@ -89,7 +90,7 @@ def proxier(request, url):
             continue
         this_response[header] = value
     
-    logger.debug('HEADERS TO SEND:\n%s', this_response.items())
+    # logger.debug('HEADERS TO SEND:\n%s', this_response.items())
     return this_response
 
 def index(request):
