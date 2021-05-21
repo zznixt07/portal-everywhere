@@ -49,8 +49,8 @@ def proxier(request, url):
     # if has a body put it in body
     if http_method != 'GET':
         prepped.body = request.body
-    verify_ssl = headers.get('X-REQUESTS-verify', True)
-    stream = headers.get('X-REQUESTS-stream', True)
+    verify_ssl = bool(headers.get('X-REQUESTS-verify', True))
+    stream = bool(headers.get('X-REQUESTS-stream', True))
     try:
         # TODO: prepend host to location header ?
         # dont follow redirects.
