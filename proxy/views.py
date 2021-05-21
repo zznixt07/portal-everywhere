@@ -1,5 +1,6 @@
 import logging
 import json
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
 from django.shortcuts import render
 # from django.views.decorator.http import require_http_methods
@@ -11,10 +12,15 @@ from django.views.decorators.gzip import gzip_page
 from requests import Session, Request
 from requests.exceptions import RequestException
 
-logger = logging.getLogger(__name__)
-FORMAT = '[%(module)s] :: %(levelname)s :: %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+def ktm_time(*args):
+    return (
+        datetime.fromtimestamp(datetime.now().timestamp(), tz=timezone.utc)
+        + timedelta(hours=5, minutes=45)
+    ).timetuple()
 
+logging.Formatter.converter = ktm_time
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # whether the state is preserverd or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
@@ -34,8 +40,8 @@ def proxier(request, url):
         url += '?' + params
     
     headers = {**request.headers}
-    logging.debug('URL: %s', url)
-    logging.debug('RAW HEADERS: %s', headers)
+    logger.debug('URL: %s', url)
+    logger.debug('RAW HEADERS: %s', headers)
     # rewrite host header by parsing the target hostname
     headers['Host'] = urlparse(url).netloc
     http_method = request.method
@@ -53,7 +59,7 @@ def proxier(request, url):
         prepped.body = request.body
     verify_ssl = bool(headers.get('X-REQUESTS-verify', True))
     stream = bool(headers.get('X-REQUESTS-stream', True))
-    logging.debug('MODIFIED HEADERS: %s', headers)
+    logger.debug('MODIFIED HEADERS: %s', headers)
     try:
         # TODO: prepend host to location header ?
         # dont follow redirects.
