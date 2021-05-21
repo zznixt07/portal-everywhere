@@ -52,9 +52,8 @@ def proxier(request, url):
     verify_ssl = headers.get('X-REQUESTS-verify', True)
     stream = headers.get('X-REQUESTS-stream', True)
     try:
-        # maybe stream, verify can be passed in header explicitly by the client.
+        # TODO: prepend host to location header ?
         # dont follow redirects.
-        # maybe prepend host to location header ?
         resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=30, allow_redirects=False)
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})

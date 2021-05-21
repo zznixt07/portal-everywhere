@@ -4,9 +4,9 @@ import time
 # from datetime import datetime
 from django.shortcuts import render
 from django.http import JsonResponse
-from .campus_api import campus_4, campus_creds
 
-def index(request): return render(request, 'home/home.html')
+def index(request):
+    return render(request, 'home/home.html')
 '''
 username: str = campus_creds.CAMPUS_USERNAME
 password: str = base64.b64decode(campus_creds.CAMPUS_PASSWORD).decode('utf-8')

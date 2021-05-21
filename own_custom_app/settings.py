@@ -29,10 +29,8 @@ ALLOWED_HOSTS = ['portal-everywhere.herokuapp.com', '127.0.0.1']
 INSTALLED_APPS = [
     'proxy.apps.ProxyConfig',
     'tech_news.apps.TechNewsConfig',
-    'campus.apps.CampusConfig',
     'user.apps.UserConfig',
     'home.apps.HomeConfig',
-    # 'django_extensions',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

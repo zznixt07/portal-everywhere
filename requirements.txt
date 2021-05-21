@@ -1,8 +1,6 @@
--e local_modules/telegram
--e local_modules/cookies_jar
--e local_modules/just_time
+git+https://github.com/zznixt07/just-time.git
+git+https://gitlab.com/zznixt07/telegram.git
 git+https://git@github.com/zznixt07/neutron_.git
-django-extensions
 requests
 beautifulsoup4
 lxml
