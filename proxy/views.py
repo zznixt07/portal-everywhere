@@ -19,9 +19,10 @@ def ktm_time(*args):
     ).timetuple()
 
 logging.Formatter.converter = ktm_time
-FORMAT = '%(asctime)15s :: [%(module)s] :: %(levelname)s :: %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+# FORMAT = '%(asctime)15s :: [%(module)s] :: %(levelname)s :: %(message)s'
+# logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
+logger.setLevel(10)
 
 # whether the state is preserverd or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
