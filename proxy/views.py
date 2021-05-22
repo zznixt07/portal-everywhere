@@ -48,7 +48,7 @@ def proxier(request, url):
 
     # rewrite host header by parsing the target hostname or
     # the host header=portal-everywhere.herokuapp.com cuz we cloned the request header
-    # remove it so that requests automatically sets the correct host header
+    # remove it. TODO: provide some way to not delete this header.
     # headers['Host'] = urlparse(url).netloc
     del headers['Host']
     http_method = request.method
