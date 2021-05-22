@@ -46,9 +46,11 @@ def proxier(request, url):
     logger.debug('URL: %s', url)
     logger.debug('RAW HEADERS:\n%s', pformat(headers))
 
-    # rewrite host header by parsing the target hostname, maybe not
-    # requests automatically sets the correct host header
+    # rewrite host header by parsing the target hostname or
+    # the host header=portal-everywhere.herokuapp.com cuz we cloned the request header
+    # remove it so that requests automatically sets the correct host header
     # headers['Host'] = urlparse(url).netloc
+    del headers['Host']
     http_method = request.method
     # django seems to put Content-Length & Content-Type header for GET requests.
     if http_method == 'GET':
