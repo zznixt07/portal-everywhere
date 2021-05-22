@@ -69,7 +69,7 @@ def proxier(request, url):
         # TODO: prepend host to location header ?
         # dont follow redirects.
         resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=30, allow_redirects=False)
-        logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF:\n%s', pformat(resp.request.headers))
+        logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF:\n%s', pformat(dict(resp.request.headers)))
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
 
