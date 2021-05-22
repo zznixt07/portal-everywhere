@@ -12,6 +12,7 @@ from django.views.decorators.gzip import gzip_page
 from requests import Session, Request
 from requests.exceptions import RequestException
 
+logging.disable()
 def ktm_time(*args):
     return (
         datetime.fromtimestamp(datetime.now().timestamp(), tz=timezone.utc)
@@ -31,7 +32,7 @@ SESS = Session()
 @csrf_exempt
 @gzip_page
 def proxier(request, url):
-    print('_' * 10 + 'REQUEST RECEIVED' + '_' * 10)
+    logger.debug('_' * 10 + 'REQUEST RECEIVED' + '_' * 10)
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
 
