@@ -71,7 +71,6 @@ def proxier(request, url):
         resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=30, allow_redirects=False)
         logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF:\n%s', pformat(resp.request.headers))
     except RequestException as ex:
-        logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF:\n%s', pformat(resp.request.headers))
         return JsonResponse({'exception': str(ex)})
 
     this_response = HttpResponse()
