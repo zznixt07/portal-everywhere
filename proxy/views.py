@@ -1,3 +1,4 @@
+import os
 import logging
 from pprint import pformat
 from datetime import datetime, timezone, timedelta
@@ -12,7 +13,9 @@ from django.views.decorators.gzip import gzip_page
 from requests import Session, Request
 from requests.exceptions import RequestException
 
-logging.disable()
+if os.environ.get('ENABLE_LOGGING') == 'FALSE':
+    logging.disable()
+
 def ktm_time(*args):
     return (
         datetime.fromtimestamp(datetime.now().timestamp(), tz=timezone.utc)
@@ -71,7 +74,7 @@ def proxier(request, url):
     try:
         # TODO: prepend host to location header ?
         # dont follow redirects.
-        resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=30, allow_redirects=False)
+        resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=15, allow_redirects=False)
         logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF:\n%s', pformat(dict(resp.request.headers)))
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
