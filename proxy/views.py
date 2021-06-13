@@ -13,7 +13,7 @@ from django.views.decorators.gzip import gzip_page
 from requests import Session, Request
 from requests.exceptions import RequestException
 
-if os.environ.get('ENABLE_LOGGING') == 'FALSE':
+if not os.environ.get('ENABLE_LOGGING') == 'TRUE':
     logging.disable()
 
 def ktm_time(*args):
