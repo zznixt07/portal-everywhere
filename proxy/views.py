@@ -23,8 +23,6 @@ def ktm_time(*args):
     ).timetuple()
 
 logging.Formatter.converter = ktm_time
-# FORMAT = '%(asctime)15s :: [%(module)s] :: %(levelname)s :: %(message)s'
-# logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 logger.setLevel(10)
 
@@ -48,19 +46,35 @@ def proxier(request, url):
     
     headers = {**request.headers}
     logger.debug('URL: %s', url)
-    logger.debug('RAW HEADERS:\n%s', pformat(headers))
+    logger.debug('RAW HEADERS SENT BY CLIENT TO PROXY:\n%s', pformat(headers))
 
-    # rewrite host header by parsing the target hostname or
-    # the host header=portal-everywhere.herokuapp.com cuz we cloned the request header
-    # remove it. TODO: provide some way to not delete this header.
-    # headers['Host'] = urlparse(url).netloc
-    del headers['Host']
+    # Remember all HTTP/1.1 request require Host Header.  HTTP/2 use
+    # :authority: pseudo header. I think requests abstracts all this.
+    if 'Forwarded' in headers:
+        # client wants host header to be included too.
+        import re
+        host_obj = re.search(r'host=([\w\.\-]*);?', headers['Forwarded'])
+        if host_obj:
+            host = host_obj.group(1)
+            if host:
+                headers['Host'] = host_obj.group(1)
+        
+        # if not headers['Host']:
+        #     headers['Host'] = urlparse(url).netloc
+    else:
+        # the host header is `portal-everywhere.herokuapp.com` cuz we cloned
+        # the request header. So, remove it. Still, the Host header is always sent
+        # on HTTP/1.1 req
+        del headers['Host']
+
     http_method = request.method
     # django seems to put Content-Length & Content-Type header for GET requests.
     if http_method == 'GET':
-        # but in prod its prob being served by gunicorn. so catch excepetion.
-        try: del headers['Content-Length']
-        except KeyError: pass
+        # but in prod its prob being served by gunicorn. so catch exception.
+        try:
+            del headers['Content-Length']
+        except KeyError:
+            pass
     # headers seem to be PascalCased
     verify_ssl = headers.pop('X-Requests-Verify', 'true') == 'true'
     stream = headers.pop('X-Requests-Stream', 'true') == 'true'
@@ -68,7 +82,7 @@ def proxier(request, url):
     req = Request(http_method, url, headers=headers)
     # no session here. each request is new and fresh.
     prepped = req.prepare()
-    # if has a body put it in body
+    # if has a body, put it in body
     if http_method != 'GET':
         prepped.body = request.body
     try:
@@ -97,7 +111,7 @@ def proxier(request, url):
             continue
         this_response[header] = value
     
-    # logger.debug('HEADERS TO SEND:\n%s', this_response.items())
+    logger.debug('HEADERS TO SEND THE CLIENT:\n%s', this_response.items())
     return this_response
 
 def index(request):
