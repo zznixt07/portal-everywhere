@@ -1,8 +1,0 @@
-setup.py
-bot_telegram_sender.egg-info/PKG-INFO
-bot_telegram_sender.egg-info/SOURCES.txt
-bot_telegram_sender.egg-info/dependency_links.txt
-bot_telegram_sender.egg-info/not-zip-safe
-bot_telegram_sender.egg-info/requires.txt
-bot_telegram_sender.egg-info/top_level.txt
-telegram/__init__.py

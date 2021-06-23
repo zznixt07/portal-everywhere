@@ -84,6 +84,9 @@ def proxier(request, url):
     prepped = req.prepare()
     # if has a body, put it in body
     if http_method != 'GET':
+        # setting body, should also set Content-Length. But we are lucky here.
+        # cuz we are just copying the exact body from django request. So content-length
+        # will be same.
         prepped.body = request.body
     try:
         # TODO: prepend host to location header ?
