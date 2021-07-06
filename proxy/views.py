@@ -34,7 +34,7 @@ SESS = Session()
 @csrf_exempt
 @gzip_page
 def proxier(request, url):
-    logger.debug('_' * 10 + 'REQUEST RECEIVED' + '_' * 10)
+    logger.debug('%sREQUEST RECEIVED%s', '-' * 30, '-' * 30)
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
 
@@ -70,8 +70,8 @@ def proxier(request, url):
         del headers['Host']
 
     http_method = request.method
-    origin = headers.setdefault('Origin', '')
-    access_control_req_header = headers.setdefault('Access-Control-Request-Headers', '')
+    origin = headers.setdefault('Origin', '*')
+    access_control_req_header = headers.setdefault('Access-Control-Request-Headers', '*')
     # access_control_req_method = headers.setdefault('Access-Control-Request-Methods', http_method)
 
     if http_method == 'GET':
@@ -101,6 +101,7 @@ def proxier(request, url):
         final_response[name] = value
 
     if http_method == 'OPTIONS':
+        logger.debug('%sCOMPELTE%s', '+' * 30, '+' * 30)
         return final_response
 
     req = Request(http_method, url, headers=headers)
@@ -144,6 +145,7 @@ def proxier(request, url):
     final_response['Access-Control-Expose-Headers'] = headers_csv
 
     logger.debug('HEADERS TO SEND THE CLIENT:\n%s', final_response.items())
+    logger.debug('%sCOMPELTE%s', '+' * 30, '+' * 30)
     return final_response
 
 def index(request):
