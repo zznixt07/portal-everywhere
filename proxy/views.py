@@ -48,8 +48,8 @@ def proxier(request, url):
     logger.debug('URL: %s', url)
     logger.debug('RAW HEADERS SENT BY CLIENT TO PROXY:\n%s', pformat(headers))
 
-    # Remember all HTTP/1.1 request require Host Header.  HTTP/2 use
-    # :authority: pseudo header. I think requests abstracts all this.
+    # Remember all HTTP/1.1 request require Host Header. HTTP/2 uses
+    # :authority: pseudo header. I think py-lib requests abstracts all this.
     if 'Forwarded' in headers:
         # client wants host header to be included too.
         import re
@@ -68,6 +68,10 @@ def proxier(request, url):
         del headers['Host']
 
     http_method = request.method
+    origin = headers.setdefault('Origin', '')
+    access_control_req_header = headers.setdefault('Access-Control-Request-Headers', '')
+    # access_control_req_method = headers.setdefault('Access-Control-Request-Methods', http_method)
+
     # django seems to put Content-Length & Content-Type header for GET requests.
     if http_method == 'GET':
         # but in prod its prob being served by gunicorn. so catch exception.
@@ -104,15 +108,33 @@ def proxier(request, url):
 
     # dont use content-encoding and content-length because the response is already
     # decoded by requests. django automatically sets the Content-Length.
-    ignore_headers = ['content-encoding', 'content-length']
     hop_by_hop_headers = [
         'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
         'te', 'trailers', 'transfer-encoding', 'upgrade',
     ]
+    ignore_headers = ['content-encoding', 'content-length'] + hop_by_hop_headers
+    headers_csv = '' # doesnt include hop_by_hop_headers
     for header, value in resp.headers.items():
-        if header.lower() in hop_by_hop_headers + ignore_headers:
+        if header.lower() in ignore_headers:
             continue
         this_response[header] = value
+        # i dont wanna iterate again
+        headers_csv += header + ', '
+    # add one last header so that we dont have to strip anything.
+    headers_csv += 'Content-Encoding' # this header wont be duplicated cuz its in ignore list
+    # TODO: all headers should be sent only on OPTIONS request. Other methods can work fine wihtout all.
+    # everything must be explicit to allow credentials to be sent from client browser.
+    # but if the origin is null then ACAO will be * which wont allow credentials.
+    cors_resp_headers = {
+        'Access-Control-Allow-Origin': '*' if origin == 'null' else origin,
+        'Vary': 'Origin',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Methods': 'HEAD, OPTIONS, GET, POST, PUT, PATCH, DELETE',
+        # 'Access-Control-Allow-Methods': access_control_req_method,
+        'Access-Control-Allow-Headers': access_control_req_header,
+        'Access-Control-Expose-Headers': headers_csv,
+    }
+    resp.headers.update(cors_resp_headers)
     
     logger.debug('HEADERS TO SEND THE CLIENT:\n%s', this_response.items())
     return this_response
