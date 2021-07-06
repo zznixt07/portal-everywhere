@@ -122,6 +122,7 @@ def proxier(request, url):
         headers_csv += header + ', '
     # add one last header so that we dont have to strip anything.
     headers_csv += 'Content-Encoding' # this header wont be duplicated cuz its in ignore list
+    
     # TODO: all headers should be sent only on OPTIONS request. Other methods can work fine wihtout all.
     # everything must be explicit to allow credentials to be sent from client browser.
     # but if the origin is null then ACAO will be * which wont allow credentials.
@@ -134,7 +135,8 @@ def proxier(request, url):
         'Access-Control-Allow-Headers': access_control_req_header,
         'Access-Control-Expose-Headers': headers_csv,
     }
-    resp.headers.update(cors_resp_headers)
+    for name, value in cors_resp_headers.items():
+        this_response[name] = value
     
     logger.debug('HEADERS TO SEND THE CLIENT:\n%s', this_response.items())
     return this_response
