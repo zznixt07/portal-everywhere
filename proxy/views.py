@@ -4,6 +4,7 @@ from pprint import pformat
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
 from django.shortcuts import render
+from django.utils.cache import patch_vary_headers
 # from django.views.decorator.http import require_http_methods
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -122,19 +123,19 @@ def proxier(request, url):
         headers_csv += header + ', '
     # add one last header so that we dont have to strip anything.
     headers_csv += 'Content-Encoding' # this header wont be duplicated cuz its in ignore list
-    
+
     # TODO: all headers should be sent only on OPTIONS request. Other methods can work fine wihtout all.
     # everything must be explicit to allow credentials to be sent from client browser.
     # but if the origin is null then ACAO will be * which wont allow credentials.
     cors_resp_headers = {
         'Access-Control-Allow-Origin': '*' if origin == 'null' else origin,
-        'Vary': 'Origin',
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Allow-Methods': 'HEAD, OPTIONS, GET, POST, PUT, PATCH, DELETE',
         # 'Access-Control-Allow-Methods': access_control_req_method,
         'Access-Control-Allow-Headers': access_control_req_header,
         'Access-Control-Expose-Headers': headers_csv,
     }
+    patch_vary_headers(this_response, ['Origin']) # cuz ACAO is dynamic
     for name, value in cors_resp_headers.items():
         this_response[name] = value
     
