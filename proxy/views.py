@@ -45,6 +45,7 @@ def proxier(request, url):
         params = request.GET.urlencode()
         url += '?' + params
     
+    final_response = HttpResponse()
     headers = {**request.headers}
     logger.debug('URL: %s', url)
     logger.debug('RAW HEADERS SENT BY CLIENT TO PROXY:\n%s', pformat(headers))
@@ -73,8 +74,8 @@ def proxier(request, url):
     access_control_req_header = headers.setdefault('Access-Control-Request-Headers', '')
     # access_control_req_method = headers.setdefault('Access-Control-Request-Methods', http_method)
 
-    # django seems to put Content-Length & Content-Type header for GET requests.
     if http_method == 'GET':
+        # django seems to put Content-Length & Content-Type header for GET requests.
         # but in prod its prob being served by gunicorn. so catch exception.
         try:
             del headers['Content-Length']
@@ -83,7 +84,22 @@ def proxier(request, url):
     # headers seem to be PascalCased
     verify_ssl = headers.pop('X-Requests-Verify', 'true') == 'true'
     stream = headers.pop('X-Requests-Stream', 'true') == 'true'
-    
+
+    # TODO: all headers should be sent only on OPTIONS request. Other methods can work fine wihtout all.
+    # everything must be explicit to allow credentials to be sent from client browser.
+    # but if the origin is null then ACAO will be * which wont allow credentials.
+    cors_resp_headers = {
+        'Access-Control-Allow-Origin': '*' if origin == 'null' else origin,
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Methods': 'HEAD, OPTIONS, GET, POST, PUT, PATCH, DELETE',
+        # 'Access-Control-Allow-Methods': access_control_req_method,
+        'Access-Control-Allow-Headers': access_control_req_header,
+        'Access-Control-Expose-Headers': '', # if its not Preflight, this will be populated.
+    }
+    patch_vary_headers(final_response, ['Origin']) # cuz ACAO is dynamic
+    if http_method == 'OPTIONS':
+        return final_response
+
     req = Request(http_method, url, headers=headers)
     # no session here. each request is new and fresh.
     prepped = req.prepare()
@@ -101,11 +117,10 @@ def proxier(request, url):
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
 
-    this_response = HttpResponse()
     for chunk in resp.iter_content(chunk_size=1024*8):
-        this_response.write(chunk)
+        final_response.write(chunk)
 
-    this_response.status_code = resp.status_code
+    final_response.status_code = resp.status_code
 
     # dont use content-encoding and content-length because the response is already
     # decoded by requests. django automatically sets the Content-Length.
@@ -118,29 +133,17 @@ def proxier(request, url):
     for header, value in resp.headers.items():
         if header.lower() in ignore_headers:
             continue
-        this_response[header] = value
+        final_response[header] = value
         # i dont wanna iterate again
         headers_csv += header + ', '
     # add one last header so that we dont have to strip anything.
     headers_csv += 'Content-Encoding' # this header wont be duplicated cuz its in ignore list
 
-    # TODO: all headers should be sent only on OPTIONS request. Other methods can work fine wihtout all.
-    # everything must be explicit to allow credentials to be sent from client browser.
-    # but if the origin is null then ACAO will be * which wont allow credentials.
-    cors_resp_headers = {
-        'Access-Control-Allow-Origin': '*' if origin == 'null' else origin,
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'HEAD, OPTIONS, GET, POST, PUT, PATCH, DELETE',
-        # 'Access-Control-Allow-Methods': access_control_req_method,
-        'Access-Control-Allow-Headers': access_control_req_header,
-        'Access-Control-Expose-Headers': headers_csv,
-    }
-    patch_vary_headers(this_response, ['Origin']) # cuz ACAO is dynamic
     for name, value in cors_resp_headers.items():
-        this_response[name] = value
+        final_response[name] = value
     
-    logger.debug('HEADERS TO SEND THE CLIENT:\n%s', this_response.items())
-    return this_response
+    logger.debug('HEADERS TO SEND THE CLIENT:\n%s', final_response.items())
+    return final_response
 
 def index(request):
     return render(request, 'proxy/index.html')
