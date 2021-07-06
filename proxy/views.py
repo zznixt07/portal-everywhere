@@ -99,7 +99,7 @@ def proxier(request, url):
     patch_vary_headers(final_response, ['Origin']) # cuz ACAO is dynamic
     for name, value in cors_resp_headers.items():
         final_response[name] = value
-    
+
     if http_method == 'OPTIONS':
         return final_response
 
@@ -141,7 +141,8 @@ def proxier(request, url):
         headers_csv += header + ', '
     # add one last header so that we dont have to strip anything.
     headers_csv += 'Content-Encoding' # this header wont be duplicated cuz its in ignore list
-    
+    final_response['Access-Control-Expose-Headers'] = headers_csv
+
     logger.debug('HEADERS TO SEND THE CLIENT:\n%s', final_response.items())
     return final_response
 
