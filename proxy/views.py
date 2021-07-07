@@ -143,6 +143,7 @@ def proxier(request, url):
     # add one last header so that we dont have to strip anything.
     headers_csv += 'Content-Encoding' # this header wont be duplicated cuz its in ignore list
     final_response['Access-Control-Expose-Headers'] = headers_csv
+    final_response['Cross-Origin-Resource-Policy'] = 'cross-origin'
 
     logger.debug('HEADERS TO SEND THE CLIENT:\n%s', final_response.items())
     logger.debug('%sCOMPELTE%s', '+' * 30, '+' * 30)
