@@ -47,6 +47,9 @@ def proxier(request, url):
     
     final_response = HttpResponse()
     headers = {**request.headers}
+    # remove heroku headers that leak ip.
+    del headers['X-Forwarded-For']
+
     logger.debug('URL: %s', url)
     logger.debug('RAW HEADERS SENT BY CLIENT TO PROXY:\n%s', pformat(headers))
 
