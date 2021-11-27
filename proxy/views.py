@@ -38,6 +38,7 @@ def proxier(request, url):
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
 
+    fallback_host = urlparse(url).netloc
     # convert to url for appending instead of passing as params cuz <select>
     # html element can send multiple values with same key. This repetition of keys
     # would not be possible using dict.
@@ -68,8 +69,8 @@ def proxier(request, url):
         #     headers['Host'] = urlparse(url).netloc
     else:
         # the host header is `portal-everywhere.herokuapp.com` cuz we cloned
-        # the request header. So, remove it. Still, the Host header is always sent
-        # on HTTP/1.1 req
+        # the request header. So, remove it. The Host header is always sent
+        # on HTTP/1.1
         del headers['Host']
 
     http_method = request.method
@@ -117,8 +118,7 @@ def proxier(request, url):
         # will be same.
         prepped.body = request.body
     try:
-        # TODO: prepend host to location header ?
-        # dont follow redirects.
+        # dont follow redirects. will not cause problems.
         resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=15, allow_redirects=False)
         logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF:\n%s', pformat(dict(resp.request.headers)))
     except RequestException as ex:
@@ -140,6 +140,11 @@ def proxier(request, url):
     for header, value in resp.headers.items():
         if header.lower() in ignore_headers:
             continue
+        # if relative location, gotta make it absolute otherwise the redirect
+        # would go to this server instead.
+        if header.lower() == 'location':
+            if value.startswith('/'):
+                value = fallback_host + value
         final_response[header] = value
         # i dont wanna iterate again
         headers_csv += header + ', '
