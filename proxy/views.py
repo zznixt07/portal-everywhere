@@ -30,15 +30,20 @@ logger.setLevel(10)
 # whether the state is preserverd or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
+SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 
 @csrf_exempt
 @gzip_page
 def proxier(request, url):
-    logger.debug('%sREQUEST RECEIVED%s', '-' * 30, '-' * 30)
-    if not url.startswith('http://') and not url.startswith('https://'):
-        url = 'https://' + url
+    view_url = request.build_absolute_uri()[:-len(url)]
+    logger.debug('\n%sREQUEST RECEIVED%s', '-' * 30, '-' * 30)
+    for scheme in SUPPORTED_SCHEMES:
+        if url.startswith(scheme): break
+    else:
+        # Default to https
+        url = SUPPORTED_SCHEMES[0] + url
 
-    fallback_host = urlparse(url).netloc
+    url_scheme, fallback_host, _ , _, _, _ = urlparse(url)
     # convert to url for appending instead of passing as params cuz <select>
     # html element can send multiple values with same key. This repetition of keys
     # would not be possible using dict.
@@ -49,10 +54,11 @@ def proxier(request, url):
     final_response = HttpResponse()
     headers = {**request.headers}
     # remove heroku headers that leak ip.
-    del headers['X-Forwarded-For']
+    if 'X-Forwarded-For' in headers: # for local-dev.
+        del headers['X-Forwarded-For']
 
     logger.debug('URL: %s', url)
-    logger.debug('RAW HEADERS SENT BY CLIENT TO PROXY:\n%s', pformat(headers))
+    logger.debug('RAW HEADERS SENT BY CLIENT TO PROXY======:\n%s', pformat(headers))
 
     # Remember all HTTP/1.1 request require Host Header. HTTP/2 uses
     # :authority: pseudo header. I think py-lib requests abstracts all this.
@@ -105,7 +111,7 @@ def proxier(request, url):
         final_response[name] = value
 
     if http_method == 'OPTIONS':
-        logger.debug('%sCOMPELTE%s', '+' * 30, '+' * 30)
+        logger.debug('%sCOMPELTE%s\n', '+' * 30, '+' * 30)
         return final_response
 
     req = Request(http_method, url, headers=headers)
@@ -120,7 +126,7 @@ def proxier(request, url):
     try:
         # dont follow redirects. will not cause problems.
         resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=15, allow_redirects=False)
-        logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF:\n%s', pformat(dict(resp.request.headers)))
+        logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF=======:\n%s', pformat(dict(resp.request.headers)))
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
 
@@ -140,11 +146,16 @@ def proxier(request, url):
     for header, value in resp.headers.items():
         if header.lower() in ignore_headers:
             continue
-        # if relative location, gotta make it absolute otherwise the redirect
-        # would go to this server instead.
+        # if relative location, gotta make it relative from /proxy (current view)
+        # instead of the root url (/).
+        # . if /url, then redirects to origin/url
+        # . If abs url, then redirects to abs url
+        # convert both above to ...../(current_view)/url
         if header.lower() == 'location':
             if value.startswith('/'):
-                value = fallback_host + value
+                value = url_scheme + '://' + fallback_host + value
+            value = view_url + value
+
         final_response[header] = value
         # i dont wanna iterate again
         headers_csv += header + ', '
@@ -153,8 +164,8 @@ def proxier(request, url):
     final_response['Access-Control-Expose-Headers'] = headers_csv
     final_response['Cross-Origin-Resource-Policy'] = 'cross-origin'
 
-    logger.debug('HEADERS TO SEND THE CLIENT:\n%s', final_response.items())
-    logger.debug('%sCOMPELTE%s', '+' * 30, '+' * 30)
+    logger.debug('HEADERS TO SEND THE CLIENT=======:\n%s', pformat(dict(final_response.headers)))
+    logger.debug('%sCOMPELTE%s\n', '+' * 30, '+' * 30)
     return final_response
 
 def index(request):
