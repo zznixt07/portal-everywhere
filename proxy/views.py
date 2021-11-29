@@ -18,6 +18,22 @@ from requests.exceptions import RequestException
 if not os.environ.get('ENABLE_LOGGING') == 'TRUE':
     logging.disable()
 
+
+def split_set_cookies_header(set_cookie_csv):
+    import re
+    # assuming that at least one cookie is present in the input parameter.
+    splitted = re.split(r',\s(\w+=)', set_cookie_csv)
+
+    first_cookie = splitted[0]
+    rest_of_cookies = splitted[1:]
+    all_cookies = [first_cookie]
+
+    for i in range(0, len(rest_of_cookies), 2):
+        all_cookies.append(''.join(rest_of_cookies[i : i + 2]))
+
+    return all_cookies
+
+
 def ktm_time(*args):
     return (
         datetime.fromtimestamp(datetime.now().timestamp(), tz=timezone.utc)
@@ -28,7 +44,7 @@ logging.Formatter.converter = ktm_time
 logger = logging.getLogger(__name__)
 logger.setLevel(10)
 
-# whether the state is preserverd or not depends on the call to `Request` or `Session`
+# whether the state is preserved or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
 if settings.DEBUG:
