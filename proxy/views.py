@@ -59,6 +59,7 @@ SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 @csrf_exempt
 @gzip_page
 def proxier(request, url):
+    original_url = url
     view_url = request.build_absolute_uri()[:-len(url)]
     logger.debug('\n%sREQUEST RECEIVED%s', '-' * 30, '-' * 30)
     for scheme in SUPPORTED_SCHEMES:
@@ -117,6 +118,9 @@ def proxier(request, url):
             pass
     # headers seem to be PascalCased
     verify_ssl = headers.pop('X-Requests-Verify', 'true') == 'true'
+    if settings.DEBUG:
+        verify_ssl = False
+
     stream = headers.pop('X-Requests-Stream', 'true') == 'true'
 
     # TODO: all headers should be sent only on OPTIONS request. Other methods can work fine wihtout all.
@@ -204,19 +208,32 @@ def proxier(request, url):
     # To send multiple cookies, use multiple "Set-Cookie" headers but keys in dict 
     # must be unique. Hence, use set_cookie instead of directly setting header.
     for cookie in resp.cookies:
+        # for rewriting cookie path
+        # use the orignal url instead of scheme prefixed cuz that is what the client
+        # knows
+        _scheme = urlparse(original_url)[0]
+        _path = urlparse(view_url)[2]
+        _origin = f'{_scheme}://{fallback_host}' if _scheme else fallback_host
+        expiry = datetime.fromtimestamp(cookie.expires, tz=timezone.utc) if cookie.expires else None
+
         final_response.set_cookie(
-            key=cookie.name,
+            cookie.name,
             value=cookie.value or '',
-            max_age=cookie.expires,
-            path=cookie.path,
-            domain=cookie.domain,
+            expires=expiry,
+            # If domain was specified, then it would be set on the real server.
+            # Unfortunately, browser dont accept cookies set from other domains
+            # and using same requests.Session with multiple domain could increase
+            # cookie collision and overwrite. path could solve all these problems.
+            domain=cookie.domain if cookie.domain_specified else None,
+            # we can use path to seperate cookies so that cookie with same name
+            # from different origins can coexist on our origin.
+            path=_path + _origin + cookie.path,
             secure=cookie.secure,
             httponly=cookie._rest.get('HttpOnly') or False,
             samesite=cookie._rest.get('SameSite') or None
         )
 
-    # logger.debug('HEADERS TO SEND THE CLIENT=======:\n%s', pformat(dict(final_response.headers)))
-    logger.debug('HEADERS TO SEND THE CLIENT=======:\n%s', (final_response.headers))
+    logger.debug('HEADERS(cookies not shown) TO SEND THE CLIENT=======:\n%s', pformat(dict(final_response.headers)))
     logger.debug('%sCOMPELTE%s\n', '+' * 30, '+' * 30)
     return final_response
 
