@@ -3,6 +3,7 @@ import logging
 from pprint import pformat
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
+from django.conf import settings
 from django.shortcuts import render
 from django.utils.cache import patch_vary_headers
 # from django.views.decorator.http import require_http_methods
@@ -30,6 +31,13 @@ logger.setLevel(10)
 # whether the state is preserverd or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
+if settings.DEBUG:
+    # fiddler specific settings
+    SESS.proxies.update({
+        'http': '127.0.0.1:8866',
+        'https': '127.0.0.1:8866'
+    })
+
 SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 
 @csrf_exempt
@@ -125,7 +133,13 @@ def proxier(request, url):
         prepped.body = request.body
     try:
         # dont follow redirects. will not cause problems.
-        resp = SESS.send(prepped, stream=stream, verify=verify_ssl, timeout=15, allow_redirects=False)
+        resp = SESS.send(
+            prepped,
+            stream=stream,
+            verify=verify_ssl,
+            timeout=15,
+            allow_redirects=False
+        )
         logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF=======:\n%s', pformat(dict(resp.request.headers)))
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
@@ -146,6 +160,13 @@ def proxier(request, url):
     for header, value in resp.headers.items():
         if header.lower() in ignore_headers:
             continue
+
+        # ufff: requests merges all Set-Cookie headers in such a way that
+        # seperating individual headers is a little pain. instead ignore it here
+        # and parse from resp.cookies.
+        if header.lower() == 'set-cookie': # Set-Cookie2 is deprecated and not used.
+            continue
+
         # if relative location, gotta make it relative from /proxy (current view)
         # instead of the root url (/).
         # . if /url, then redirects to origin/url
@@ -164,7 +185,22 @@ def proxier(request, url):
     final_response['Access-Control-Expose-Headers'] = headers_csv
     final_response['Cross-Origin-Resource-Policy'] = 'cross-origin'
 
-    logger.debug('HEADERS TO SEND THE CLIENT=======:\n%s', pformat(dict(final_response.headers)))
+    # To send multiple cookies, use multiple "Set-Cookie" headers but keys in dict 
+    # must be unique. Hence, use set_cookie instead of directly setting header.
+    for cookie in resp.cookies:
+        final_response.set_cookie(
+            key=cookie.name,
+            value=cookie.value or '',
+            max_age=cookie.expires,
+            path=cookie.path,
+            domain=cookie.domain,
+            secure=cookie.secure,
+            httponly=cookie._rest.get('HttpOnly') or False,
+            samesite=cookie._rest.get('SameSite') or None
+        )
+
+    # logger.debug('HEADERS TO SEND THE CLIENT=======:\n%s', pformat(dict(final_response.headers)))
+    logger.debug('HEADERS TO SEND THE CLIENT=======:\n%s', (final_response.headers))
     logger.debug('%sCOMPELTE%s\n', '+' * 30, '+' * 30)
     return final_response
 
