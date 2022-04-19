@@ -47,12 +47,14 @@ logger.setLevel(10)
 # whether the state is preserved or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
-if settings.DEBUG:
-    # fiddler specific settings
-    SESS.proxies.update({
-        'http': '127.0.0.1:8866',
-        'https': '127.0.0.1:8866'
-    })
+# if settings.DEBUG:
+# !warning: when testing locally with http, cookies that have secure flag will correctly not be sent.
+# this will create a subtle bug and a big headache.
+# fiddler specific settings
+# SESS.proxies.update({
+#     'http': '127.0.0.1:8866',
+#     'https': '127.0.0.1:8866'
+# })
 
 SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 
@@ -103,6 +105,18 @@ def proxier(request, url):
         # the request header. So, remove it. The Host header is always sent
         # on HTTP/1.1
         del headers['Host']
+
+    extra_headers = headers.pop('X-Cust-Extra-Headers', {})
+    if extra_headers:
+        # this is our custom header to bypass header name normalization by django eg: ("_"->"-")
+        # see: https://stackoverflow.com/a/31282738/12091475
+        # our delimiter is comma. but this could break if header value has comma in itself. (base64?)
+        for hdr in extra_headers.split(','):
+            splitted = hdr.split(':', 1)
+            if len(splitted) == 2:
+                hdr_key, hdr_val = splitted
+                headers[hdr_key] = hdr_val
+
 
     http_method = request.method
     origin = headers.setdefault('Origin', '*')
@@ -228,7 +242,7 @@ def proxier(request, url):
             # we can use path to seperate cookies so that cookie with same name
             # from different origins can coexist on our origin.
             path=_path + _origin + cookie.path,
-            secure=cookie.secure,
+            secure=cookie.secure, # Note: During dev, secure cookie wont be set on http
             httponly=cookie._rest.get('HttpOnly') or False,
             samesite=cookie._rest.get('SameSite') or None
         )
