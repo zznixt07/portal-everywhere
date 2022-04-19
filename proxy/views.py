@@ -47,12 +47,12 @@ logger.setLevel(10)
 # whether the state is preserved or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
-if settings.DEBUG:
-    # fiddler specific settings
-    SESS.proxies.update({
-        'http': '127.0.0.1:8866',
-        'https': '127.0.0.1:8866'
-    })
+# if settings.DEBUG:
+#     # fiddler specific settings
+#     SESS.proxies.update({
+#         'http': '127.0.0.1:8866',
+#         'https': '127.0.0.1:8866'
+#     })
 
 SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 
@@ -228,7 +228,7 @@ def proxier(request, url):
             # we can use path to seperate cookies so that cookie with same name
             # from different origins can coexist on our origin.
             path=_path + _origin + cookie.path,
-            secure=cookie.secure,
+            secure=cookie.secure, # Note: During dev, secure cookie wont be set on http
             httponly=cookie._rest.get('HttpOnly') or False,
             samesite=cookie._rest.get('SameSite') or None
         )
