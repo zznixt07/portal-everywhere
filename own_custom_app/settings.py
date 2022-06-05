@@ -49,7 +49,7 @@ LOGGING = {
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'fkd)m7#qzfvq@*+(4dzs8l67c=#%jy6ra9k_jf*68fk+niq-qf'
 
-DEBUG = os.environ.get('DEBUG_VALUE') == 'True'
+DEBUG = os.environ.get('DEBUG_VALUE') == 'TRUE'
 
 ALLOWED_HOSTS = ['*']
 

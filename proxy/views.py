@@ -47,14 +47,15 @@ logger.setLevel(10)
 # whether the state is preserved or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
-# if settings.DEBUG:
 # !warning: when testing locally with http, cookies that have secure flag will correctly not be sent.
 # this will create a subtle bug and a big headache.
-# fiddler specific settings
-# SESS.proxies.update({
-#     'http': '127.0.0.1:8866',
-#     'https': '127.0.0.1:8866'
-# })
+if settings.DEBUG:
+    # fiddler specific settings
+    logger.info('Using Telerik Fiddler proxy')
+    SESS.proxies.update({
+        'http': '127.0.0.1:8866',
+        'https': '127.0.0.1:8866'
+    })
 
 SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 
@@ -174,7 +175,7 @@ def proxier(request, url):
             timeout=15,
             allow_redirects=False
         )
-        logger.debug('HEADERS REQUESTED BY PROXY ON BEHALF=======:\n%s', pformat(dict(resp.request.headers)))
+        logger.debug('REQUEST HEADERS BY PROXY TO TRUE SERVER=======:\n%s', pformat(dict(resp.request.headers)))
     except RequestException as ex:
         return JsonResponse({'exception': str(ex)})
 
@@ -229,7 +230,8 @@ def proxier(request, url):
         _path = urlparse(view_url)[2]
         _origin = f'{_scheme}://{fallback_host}' if _scheme else fallback_host
         expiry = datetime.fromtimestamp(cookie.expires, tz=timezone.utc) if cookie.expires else None
-
+        # python seems to add double quotes on cookies containing slash(/). even stripping that.
+        # django will re-add it. hence handle it client side.
         final_response.set_cookie(
             cookie.name,
             value=cookie.value or '',
@@ -248,6 +250,7 @@ def proxier(request, url):
         )
 
     logger.debug('HEADERS(cookies not shown) TO SEND THE CLIENT=======:\n%s', pformat(dict(final_response.headers)))
+    logger.debug('COOKIES TO SEND THE CLIENT=======:\n%s', pformat(dict(final_response.cookies)))
     logger.debug('%sCOMPELTE%s\n', '+' * 30, '+' * 30)
     return final_response
 
