@@ -47,14 +47,14 @@ logger.setLevel(10)
 # whether the state is preserved or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
-# !warning: when testing locally with http, cookies that have secure flag will correctly not be sent.
-# this will create a subtle bug and a big headache.
+# !warning: when testing locally with http instead of httpd,
+# cookies that have secure flag will correctly not be sent.
+# this will create the subtlest of bug and the biggest of headache.
 if settings.DEBUG:
-    # fiddler specific settings
-    logger.info('Using Telerik Fiddler proxy')
+    logger.info('Using Local proxy @ 8000')
     SESS.proxies.update({
-        'http': '127.0.0.1:8866',
-        'https': '127.0.0.1:8866'
+        'http': '127.0.0.1:8000',
+        'https': '127.0.0.1:8000'
     })
 
 SUPPORTED_SCHEMES = ['https://', 'http://'] # order
@@ -63,7 +63,9 @@ SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 @gzip_page
 def proxier(request, url):
     original_url = url
-    view_url = request.build_absolute_uri()[:-len(url)]
+    # original_url_with_qparams = request.get_full_path()
+    # view_url = request.build_absolute_uri()[:-(len(original_url_with_qparams) - len(view_path))]
+    view_path = '/' + '/'.join(request.resolver_match.route.split('/')[:-1]) # /proxy
     logger.debug('\n%sREQUEST RECEIVED%s', '-' * 30, '-' * 30)
     for scheme in SUPPORTED_SCHEMES:
         if url.startswith(scheme): break
@@ -203,14 +205,18 @@ def proxier(request, url):
             continue
 
         # if relative location, gotta make it relative from /proxy (current view)
-        # instead of the root url (/).
+        # instead of the root url (/). here's the logic for location header
         # . if /url, then redirects to origin/url
+        # . if url, then redirects to path/url
         # . If abs url, then redirects to abs url
-        # convert both above to ...../(current_view)/url
+        # convert all 3 above to /(current_view)/url
         if header.lower() == 'location':
+            logger.info('Location Header found. Rewriting it.')
             if value.startswith('/'):
+                logger.info('Location Header is relative. Making it absolute')
                 value = url_scheme + '://' + fallback_host + value
-            value = view_url + value
+            logger.info('Prefixing it with proxy endpoint: `%s`', view_path)
+            value = view_path + '/' + value
 
         final_response[header] = value
         # i dont wanna iterate again
@@ -227,7 +233,8 @@ def proxier(request, url):
         # use the orignal url instead of scheme prefixed cuz that is what the client
         # knows
         _scheme = urlparse(original_url)[0]
-        _path = urlparse(view_url)[2]
+        # _path = urlparse(view_url)[2]
+        _path = view_path + '/'
         _origin = f'{_scheme}://{fallback_host}' if _scheme else fallback_host
         expiry = datetime.fromtimestamp(cookie.expires, tz=timezone.utc) if cookie.expires else None
         # python seems to add double quotes on cookies containing slash(/). even stripping that.
