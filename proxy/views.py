@@ -50,12 +50,9 @@ SESS = Session()
 # !warning: when testing locally with http instead of httpd,
 # cookies that have secure flag will correctly not be sent.
 # this will create the subtlest of bug and the biggest of headache.
-if settings.DEBUG:
-    logger.info('Using Local proxy @ 8000')
-    SESS.proxies.update({
-        'http': '127.0.0.1:8000',
-        'https': '127.0.0.1:8000'
-    })
+# if settings.DEBUG:
+    # logger.info('Env vars https_proxy: %s', os.environ['HTTPS_PROXY'])
+    # logger.info('Using Local proxy @ 8000')
 
 SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 
@@ -133,7 +130,11 @@ def proxier(request, url):
             del headers['Content-Length']
         except KeyError:
             pass
+    
     # headers seem to be PascalCased
+    proxies = headers.pop('X-Proxy-Basic-Auth', None)
+    if proxies:
+        proxies = {'http': proxies, 'https': proxies}
     verify_ssl = headers.pop('X-Requests-Verify', 'true') == 'true'
     if settings.DEBUG:
         verify_ssl = False
@@ -175,7 +176,10 @@ def proxier(request, url):
             stream=stream,
             verify=verify_ssl,
             timeout=15,
-            allow_redirects=False
+            allow_redirects=False,
+            # passing any value to proxy will not use the env proxy if any. hence,
+            # this is done like this.
+            **({'proxies': proxies} if proxies else {})
         )
         logger.debug('REQUEST HEADERS BY PROXY TO TRUE SERVER=======:\n%s', pformat(dict(resp.request.headers)))
     except RequestException as ex:
