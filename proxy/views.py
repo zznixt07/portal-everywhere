@@ -70,7 +70,7 @@ def proxier(request, url):
         # Default to https
         url = SUPPORTED_SCHEMES[0] + url
 
-    url_scheme, fallback_host, _ , _, _, _ = urlparse(url)
+    url_scheme, fallback_host, fallback_path , _, _, _ = urlparse(url)
     # convert to url for appending instead of passing as params cuz <select>
     # html element can send multiple values with same key. This repetition of keys
     # would not be possible using dict.
@@ -217,8 +217,16 @@ def proxier(request, url):
         if header.lower() == 'location':
             logger.info('Location Header found. Rewriting it.')
             if value.startswith('/'):
+                # if no domain is present, then count it as relative.
                 logger.info('Location Header is relative. Making it absolute')
                 value = url_scheme + '://' + fallback_host + value
+            else:
+                # could still be relative from basepath.
+                if not urlparse(value).netloc:
+                    logger.info('Location Header is relative to the basepath. Making it absolute')
+                    part_path = os.path.dirname(fallback_path)
+                    value = url_scheme + '://' + fallback_host + part_path.rstrip('/') + '/' + value
+
             logger.info('Prefixing it with proxy endpoint: `%s`', view_path)
             value = view_path + '/' + value
 
