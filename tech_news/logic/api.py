@@ -16,13 +16,15 @@ def fossbytes_feed():
 def xdadev_feed():
     "only page 1. around 16 posts"
 
-    resp = requests.get('https://www.xda-developers.com/', headers=HDRS)
+    origin = 'https://www.xda-developers.com'
+    resp = requests.get(origin + '/', headers=HDRS)
     soup = BeautifulSoup(resp.content, 'lxml')
     feeds = []
-    featured_feeds = soup.select('.desktop-featured-header .layout_post_1')
-    feeds.extend([feed.select_one('a').get('href') for feed in featured_feeds])
-    remaining_feeds = soup.select('.layout_post_2 .item_content')
-    feeds.extend([feed.select_one('a').get('href') for feed in remaining_feeds])
+    # featured_feeds = soup.select('.desktop-featured-header .layout_post_1')
+    # feeds.extend([feed.select_one('a').get('href') for feed in featured_feeds])
+    remaining_feeds = soup.select('.section-latest-news article a:first-child[title]')
+    feeds.extend([origin  + feed
+    .get('href') for feed in remaining_feeds])
 
     return feeds
 
