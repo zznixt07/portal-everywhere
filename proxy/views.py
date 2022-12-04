@@ -87,6 +87,11 @@ def proxier(request, url):
     logger.debug('URL: %s', url)
     logger.debug('RAW HEADERS SENT BY CLIENT TO PROXY======:\n%s', pformat(headers))
 
+    # the host header is `portal-everywhere.herokuapp.com` cuz we cloned
+    # the request header. So, remove it. The Host header is always sent
+    # on HTTP/1.1
+    del headers['Host']
+    
     # Remember all HTTP/1.1 request require Host Header. HTTP/2 uses
     # :authority: pseudo header. I think py-lib requests abstracts all this.
     if 'Forwarded' in headers:
@@ -100,11 +105,7 @@ def proxier(request, url):
         
         # if not headers['Host']:
         #     headers['Host'] = urlparse(url).netloc
-    else:
-        # the host header is `portal-everywhere.herokuapp.com` cuz we cloned
-        # the request header. So, remove it. The Host header is always sent
-        # on HTTP/1.1
-        del headers['Host']
+    
 
     extra_headers = headers.pop('X-Cust-Extra-Headers', {})
     if extra_headers:
