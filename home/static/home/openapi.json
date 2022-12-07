@@ -1,0 +1,57 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Tech News - OpenAPI 3.0",
+    "description": "OpenAPI v3 based documentation for fetching latest technology URLs.\nThese urls are fetched from popular domains like xda-developers which consists of news focusing mainly on the mobile side of tech.",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0.1"
+  },
+  "servers": [
+    {
+      "url": "https://portal-everywhere.onrender.com"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Technology",
+      "description": "Everything about Tech"
+    }
+  ],
+  "paths": {
+    "/api/v1/tech/feeds/xda/": {
+      "get": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Returns latest news article urls",
+        "description": "URLs to xda-developer recent articles",
+        "operationId": "getArticles",
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Feed"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Feed": {
+        "type": "string"
+      }
+    }
+  }
+}

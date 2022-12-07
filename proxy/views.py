@@ -47,12 +47,13 @@ logger.setLevel(10)
 # whether the state is preserved or not depends on the call to `Request` or `Session`
 # specifically Request.prepare() doesnt apply state while Session.prepare_request() does
 SESS = Session()
-# !warning: when testing locally with http instead of httpd,
+# !warning: when testing locally with http instead of https,
 # cookies that have secure flag will correctly not be sent.
 # this will create the subtlest of bug and the biggest of headache.
-# if settings.DEBUG:
-    # logger.info('Env vars https_proxy: %s', os.environ['HTTPS_PROXY'])
-    # logger.info('Using Local proxy @ 8000')
+if os.environ.get('fiddler') == '1':
+    logger.info(' :::::::::::::::::::: USING Fiddler proxy for debugging ::::::::::::::::::: ')
+    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:8866'
+    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:8866'
 
 SUPPORTED_SCHEMES = ['https://', 'http://'] # order
 
